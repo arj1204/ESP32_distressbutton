@@ -1,11 +1,43 @@
 #include <Arduino.h>
 #include "config.h"
 
+#include "esp_sleep.h"
+#include "driver/rtc_io.h"
+
+
 // ---------- Debounce state: one entry per button ----------
 bool          lastReading[NUM_BUTTONS];   // raw pin level from the previous pass
 bool          stableState[NUM_BUTTONS];   // debounced level (HIGH = released, LOW = pressed)
 unsigned long lastChangeMs[NUM_BUTTONS];  // when the raw level last changed
 
+
+
+RTC_DATA_ATTR uint32_t bootCount = 0;     // survives deep sleep
+esp_sleep_wakeup_cause_t wakeCause;
+unsigned long lastActivityMs = 0;
+
+void printWakeReason() {
+  switch (wakeCause) {
+    case ESP_SLEEP_WAKEUP_EXT0:  Serial.println("button (EXT0)"); break;
+    case ESP_SLEEP_WAKEUP_TIMER: Serial.println("timer");         break;
+    default:                     Serial.println("power-on / reset");
+  }
+}
+
+void goToSleep() {
+  // Don't sleep while the wake pin is still LOW, or we would wake instantly
+  while (digitalRead(WAKE_PIN) == LOW) delay(10);
+
+  Serial.println("Going to deep sleep...");
+  Serial.flush();                          // let the text finish sending
+  digitalWrite(BUZZER_PIN, LOW);
+
+  rtc_gpio_pullup_en(WAKE_PIN);            // keep the pull-up alive during sleep
+  rtc_gpio_pulldown_dis(WAKE_PIN);
+  esp_sleep_enable_ext0_wakeup(WAKE_PIN, 0);       // wake when pin goes LOW
+  esp_sleep_enable_timer_wakeup(SLEEP_TIMER_US);   // also wake on timer
+  esp_deep_sleep_start();                  // never returns
+}
 // ---------- Buzzer ----------
 // HIGH switches the NPN transistor on, which sounds the buzzer.
 void beep(uint16_t ms) {
@@ -71,7 +103,19 @@ void setup() {
   }
 
   Serial.printf("Ready: %d buttons\n", NUM_BUTTONS);
-  beepTimes(1);                            // startup beep to prove the buzzer works
+  
+
+  // Wake reason and boot count
+  wakeCause = esp_sleep_get_wakeup_cause();
+  bootCount++;
+  Serial.printf("Boot #%lu, woke by: ", (unsigned long)bootCount);
+  printWakeReason();
+
+  if (wakeCause == ESP_SLEEP_WAKEUP_EXT0) {
+    Serial.println("Button press detected (woke from sleep)");
+    beep(BEEP_SHORT_MS);                   // timer wakes stay silent
+  }
+  lastActivityMs = millis();
 }
 
 // ---------- Main loop ----------
@@ -80,6 +124,8 @@ void loop() {
   if (b >= 0) {
     Serial.printf("Button %d pressed\n", b);
     beep(BEEP_SHORT_MS);
+    lastActivityMs = millis();
   }
+  if (millis() - lastActivityMs > AWAKE_WINDOW_MS) goToSleep();
   delay(1);
 }

@@ -1,5 +1,6 @@
 #pragma once
 #include <Arduino.h>
+#include "driver/gpio.h"
 
 // ============================================================
 //  TEST MODE
@@ -21,6 +22,13 @@
 #else
   const uint8_t BUTTON_PINS[] = {13, 14, 26, 27, 32, 33};
 #endif
+
+// ---------- Sleep / wake ----------
+const gpio_num_t WAKE_PIN = GPIO_NUM_0;   // TEST: BOOT button. Must be an RTC GPIO.
+const uint32_t   AWAKE_WINDOW_MS = 5000;  // stay awake this long after the last activity
+const uint64_t   SLEEP_TIMER_US  = 30ULL * 1000000ULL;  // TEST: 30 s timer wake
+
+
 
 const uint8_t BUZZER_PIN  = 25;
 const uint8_t BATTERY_PIN = 35;   // ADC1 (works with WiFi on), used later
