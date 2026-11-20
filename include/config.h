@@ -59,3 +59,12 @@ const uint16_t STARTUP_DELAY_MS = 500;   // lets the serial monitor connect; set
 const uint32_t AWAKE_WINDOW_MS = 3000;   // stay awake this long after the last activity
 const uint32_t RELEASE_WAIT_MS = 3000;   // max wait for buttons to be released before sleeping
 const uint64_t SLEEP_TIMER_US  = 30ULL * 1000000ULL;   // TEST: timer wake every 30 s
+
+
+// ============================================================
+//  NETWORK (temporary; WiFiManager comes later)
+// ============================================================
+const char* const DEVICE_ID  = "dev1";
+const char* const SERVER_URL = "http://10.244.96.75:8000/api/alert"; //update Device mac address
+const uint32_t    WIFI_TIMEOUT_MS = 15000;
+const uint16_t    TEST_BATTERY_MV = 3900;   // placeholder until the battery divider exists
