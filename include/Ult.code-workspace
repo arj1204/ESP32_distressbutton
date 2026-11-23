@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../../../../../new_work/Ult"
+		},
+		{
+			"name": "Distress_button",
+			"path": ".."
+		}
+	],
+	"settings": {
+		"liveServer.settings.multiRootWorkspaceName": "Distress_button"
+	}
+}
