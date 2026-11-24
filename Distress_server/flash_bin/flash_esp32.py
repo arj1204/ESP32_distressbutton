@@ -20,7 +20,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-CHIP = "esp32s3"
+CHIP = "esp32"
 APP_OFFSET = 0x10000
 
 # USB vendor IDs of the USB-serial chips found on common ESP32-S3 boards

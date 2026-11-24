@@ -5,7 +5,7 @@
 #include <time.h>
 #include "config.h"
 #include "secrets.h"
-#include "network.h"
+#include "wifi_network.h"
 
 #if ENABLE_WIFI_SETUP
 #include <WiFiMulti.h>
@@ -304,6 +304,22 @@ static bool findServer(char* out, size_t len, bool searchAgain, bool* discovered
   }
   return false;
 }
+
+// ============================================================
+//  ERASE ALL SAVED NETWORKS  (two-button reset combo)
+// ============================================================
+#if ENABLE_WIFI_SETUP
+void forgetAllNetworks() {
+  Preferences p;
+  p.begin("wifi", false);
+  p.clear();                        // removes every saved network and typed server address
+  p.end();
+#if ENABLE_SERVER_DISCOVERY
+  cachedSsid[0] = '\0';             // forget the remembered server too
+  cachedUrl[0]  = '\0';
+#endif
+}
+#endif
 
 // ============================================================
 //  SENDING

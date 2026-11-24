@@ -14,3 +14,5 @@ int sendAlert(uint32_t eventId, uint8_t type, uint16_t batteryMv);
 // Only used when ENABLE_WIFI_SETUP = 1:
 uint8_t savedNetworkCount();               // WiFi networks saved in flash (0 to 5)
 bool    runSetupPortal(uint16_t timeoutSec);  // open the setup page; true if a network was saved
+
+void    forgetAllNetworks();               // erase every saved network and typed server address

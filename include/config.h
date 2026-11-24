@@ -114,6 +114,21 @@ const uint32_t STUCK_RECHECK_MAX_S = 600;     // longest gap (10 min) while it s
 const uint32_t MAX_AWAKE_MS        = 60000;   // safety cap: never stay awake longer than 60 s
                                               // (the setup page is the one exception)
 
+
+// ============================================================
+//  WIFI RESET COMBO (ENABLE_WIFI_SETUP = 1)
+// ============================================================
+// Press BOTH of these buttons together (within COMBO_JOIN_MS) and hold:
+//   5 s  -> 3 blinks. Let go: the setup page opens (add a network, or update a password).
+//   10 s -> 1 long blink. ALL saved networks are erased, then the setup page opens.
+// Released before 5 s = two ordinary presses, both alerts are sent.
+// Use two low-priority buttons: their alerts wait while both are held.
+const uint8_t  COMBO_PIN_A          = 13;      // "I need help"
+const uint8_t  COMBO_PIN_B          = 33;      // "I want to leave" (or BOOT button if ENABLE_BOOT_BUTTON_TEST = 1)
+const uint32_t COMBO_JOIN_MS        = 500;     // max gap between pressing the two buttons
+const uint32_t COMBO_SETUP_HOLD_MS  = 5000;    // hold this long for the setup page
+const uint32_t COMBO_ERASE_HOLD_MS  = 10000;   // hold this long to erase all saved networks
+
 // ============================================================
 //  ALERTS
 // ============================================================
