@@ -345,18 +345,29 @@ void setup() {
   }
 #endif
 
+    // Buttons that woke us, as a checkButtons()-style mask (bit i = BUTTONS[i]).
+  uint16_t wokeButtons = 0;
+  for (uint8_t i = 0; i < NUM_BUTTONS; i++)
+    if (woke & (1ULL << BUTTONS[i].pin)) wokeButtons |= (1u << i);
+
+#if ENABLE_WIFI_SETUP
+  wokeButtons = handleCombo(wokeButtons);   // two buttons held together = WiFi setup, not alerts
+#endif
+
   // Send every button that woke us, in priority order (BUTTONS[] order).
-  if (woke) {
-    for (uint8_t i = 0; i < NUM_BUTTONS; i++)
-      if (woke & (1ULL << BUTTONS[i].pin)) handleAlert(BUTTONS[i]);
-  } else if (wakeCause == ESP_SLEEP_WAKEUP_EXT0 || wakeCause == ESP_SLEEP_WAKEUP_EXT1) {
+  for (uint8_t i = 0; i < NUM_BUTTONS; i++)
+    if (wokeButtons & (1u << i)) handleAlert(BUTTONS[i]);
+
+  if (!woke && (wakeCause == ESP_SLEEP_WAKEUP_EXT0 || wakeCause == ESP_SLEEP_WAKEUP_EXT1))
     Serial.println("Woke by button but could not tell which one");
-  }
 }
 
 // ---------- Main loop: runs until goToSleep() ----------
 void loop() {
   uint16_t presses = checkButtons();                   // all new presses this pass
+#if ENABLE_WIFI_SETUP
+  presses = handleCombo(presses);                      // two buttons held together = WiFi setup
+#endif
   for (uint8_t i = 0; i < NUM_BUTTONS; i++)            // priority order
     if (presses & (1u << i)) handleAlert(BUTTONS[i]);
 
