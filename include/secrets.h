@@ -2,8 +2,8 @@
 // Never commit or share this file.
 
 // Used only when ENABLE_WIFI_SETUP = 0 (otherwise networks are entered on the setup page).
-const char* const WIFI_SSID = <your-wifi-name>;      // 2.4 GHz network
-const char* const WIFI_PASS =<your-password>;  // network password
+const char* const WIFI_SSID = "your-wifi-name";      // 2.4 GHz network
+const char* const WIFI_PASS ="your-password";  // network password
 
 // Must match DEVICE_API_KEY in the server's .env
 const char* const API_KEY   = "whJqLiEIerY9tGtuVkJeSAEef56GjJu1";

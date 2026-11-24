@@ -4,7 +4,7 @@
 #include "esp_sleep.h"
 #include "driver/rtc_io.h"
 #include "config.h"
-#include "network.h"
+#include "wifi_network.h"
 
 // ---------- Debounce state: one entry per button ----------
 bool          lastReading[NUM_BUTTONS];   // raw "is pressed" from the previous pass
@@ -208,6 +208,90 @@ bool setupButtonHeld() {
 }
 #endif
 
+
+#if ENABLE_WIFI_SETUP
+// ---------- WiFi reset combo: hold two buttons together ----------
+enum ComboAction { COMBO_NONE, COMBO_SETUP, COMBO_ERASE };
+
+// Bit (in the checkButtons() mask) of the button on this pin; 0 if no button uses it.
+uint16_t buttonBit(uint8_t pin) {
+  for (uint8_t i = 0; i < NUM_BUTTONS; i++)
+    if (BUTTONS[i].pin == pin) return 1u << i;
+  return 0;
+}
+
+bool comboHeld() {
+  return digitalRead(COMBO_PIN_A) == HIGH && digitalRead(COMBO_PIN_B) == HIGH;
+}
+
+// One combo button was just pressed: wait briefly to see if the other one joins it.
+bool comboStarting() {
+  uint32_t t0 = millis();
+  while (millis() - t0 < COMBO_JOIN_MS) {
+    if (comboHeld()) return true;
+    if (digitalRead(COMBO_PIN_A) == LOW && digitalRead(COMBO_PIN_B) == LOW) return false;  // let go
+    delay(10);
+  }
+  return false;
+}
+
+// Both combo buttons are held: time it. Let go before COMBO_SETUP_HOLD_MS = ordinary presses.
+ComboAction measureCombo() {
+  uint32_t t0 = millis();
+  bool setupReached = false;
+  Serial.println("Combo: both buttons held...");
+  while (comboHeld()) {
+    uint32_t held = millis() - t0;
+    if (!setupReached && held >= COMBO_SETUP_HOLD_MS) {
+      setupReached = true;
+      Serial.println("Combo: let go now for the setup page, or keep holding to erase all WiFi");
+      beepTimes(3);                                        // 3 blinks: setup
+    }
+    if (held >= COMBO_ERASE_HOLD_MS) {
+      beep(BEEP_LONG_MS);                                  // 1 long blink: erase
+      return COMBO_ERASE;
+    }
+    delay(20);
+  }
+  return setupReached ? COMBO_SETUP : COMBO_NONE;
+}
+
+// Erase all networks (if asked), then open the setup page.
+void runCombo(ComboAction action) {
+  wifiOff();
+  if (action == COMBO_ERASE) {
+    forgetAllNetworks();
+    Serial.println("Combo: all saved WiFi networks erased");
+  }
+  if (runSetupPortal(SETUP_PORTAL_TIMEOUT_S)) beepTimes(2);
+  else                                        beep(BEEP_LONG_MS);
+  wifiOff();
+  lastActivityMs = millis();
+}
+
+// Takes the buttons just pressed (bit mask) and returns the ones to send as alerts.
+// Combo held 5 s or more: the two combo buttons are removed and the setup page runs.
+// Both pressed but let go early: both are kept, so both alerts go out.
+uint16_t handleCombo(uint16_t presses) {
+  uint16_t comboBits = buttonBit(COMBO_PIN_A) | buttonBit(COMBO_PIN_B);
+  if (!(presses & comboBits) || !comboStarting()) return presses;   // not a combo
+
+  ComboAction action = measureCombo();
+  if (action == COMBO_NONE) {
+    presses |= comboBits;                                  // short press of both: send both
+  } else {
+    presses &= ~comboBits;                                 // used for setup: no alerts
+    runCombo(action);
+  }
+  for (uint8_t i = 0; i < NUM_BUTTONS; i++) {              // combo buttons still held are not
+    if (!(comboBits & (1u << i))) continue;                // new presses
+    lastReading[i]  = isPressed(i);
+    stableState[i]  = lastReading[i];
+    lastChangeMs[i] = millis();
+  }
+  return presses;
+}
+#endif  // ENABLE_WIFI_SETUP
 // ---------- Setup: runs once per wake ----------
 void setup() {
   setCpuFrequencyMhz(80);                  // saves power, still enough for WiFi
